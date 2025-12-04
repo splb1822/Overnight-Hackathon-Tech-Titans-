@@ -78,7 +78,7 @@ Installation & Setup
 
 Clone the repo
 
-git clone [https://github.com/techtitans/threatlens.git](https://github.com/techtitans/threatlens.git)
+git clone (https://github.com/splb1822/Overnight-Hackathon-Tech-Titans-)
 
 Add API Keys
 

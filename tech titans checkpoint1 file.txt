@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scam Call Detector</title>
+  <style>
+    /* Cyber / techy styling — embedded CSS */
+    :root{
+      --bg:#05060a;
+      --card:#071025;
+      --accent:#2be8ff;
+      --accent-2:#7cf6ff;
+      --danger:#ff4d6d;
+      --muted:#93a3ad;
+      --glass: rgba(255,255,255,0.03);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(34,48,66,0.15), transparent),
+        linear-gradient(180deg,#020306 0%, #071022 100%);
+      color:#dff8ff;
+      height:100vh;
+      margin:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    #app{width:100%; max-width:1100px}
+
+    .call-panel{
+      display:grid;
+      grid-template-columns:380px 1fr;
+      gap:18px;
+      padding:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      border-radius:12px;
+      border:1px solid rgba(43,232,255,0.06);
+      box-shadow: 0 18px 60px rgba(2,6,15,0.6);
+      position:relative;
+    }
+
+    /* Left column */
+    .left{display:flex; flex-direction:column; gap:12px}
+    .caller-head .badge{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:8px;
+      color:var(--accent);
+      background:rgba(43,232,255,0.04);
+      font-weight:600;
+      font-size:12px;
+      letter-spacing:1px;
+    }
+    .caller-head h1{
+      margin:8px 0 2px;
+      font-size:20px;
+      letter-spacing:0.4px;
+    }
+    #call-meta{color:var(--muted); font-size:13px}
+
+    .controls{display:flex; gap:10px}
+    .btn{
+      padding:10px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,0.04);
+      font-weight:700;
+      font-size:13px;
+      background:rgba(255,255,255,0.02);
+      color:#eaf9ff;
+    }
+    .btn.green{
+      background:linear-gradient(90deg,#06321b,#042512);
+      color:#bfffe6;
+    }
+    .btn.red{
+      background:linear-gradient(90deg,#38050a,#4a0710);
+      color:#ffd7da;
+    }
+    .btn.warn{
+      background:linear-gradient(90deg,#4a2a03,#6a3f05);
+      color:#fff0c6;
+    }
+    .btn.info{
+      background:linear-gradient(90deg,#06223a,#07283f);
+      color:#d6f4ff;
+    }
+    .btn.muted{
+      background:transparent;
+      color:var(--muted);
+      border:1px dashed rgba(255,255,255,0.03);
+      padding:8px 10px;
+    }
+    .btn.small{
+      padding:6px 8px;
+      font-size:12px;
+    }
+
+    .btn:disabled{
+      opacity:0.45;
+      cursor:not-allowed;
+    }
+
+    /* status chips */
+    .status{display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;}
+    .chip{
+      background:var(--glass);
+      color:var(--muted);
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:13px;
+    }
+
+    /* Threat visual */
+    .viz{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-top:10px;
+    }
+    .label{
+      font-size:13px;
+      color:var(--muted);
+      min-width:90px;
+    }
+    .meter{
+      flex:1;
+      height:16px;
+      background:rgba(255,255,255,0.03);
+      border-radius:10px;
+      overflow:hidden;
+    }
+    .meter > div{
+      height:100%;
+      width:0%;
+      transition:width .4s ease;
+      background:linear-gradient(90deg,var(--accent), var(--accent-2));
+    }
+    .score{
+      width:56px;
+      text-align:right;
+      font-weight:800;
+    }
+
+    .actions{display:flex; gap:8px; margin-top:6px}
+
+    /* Right column */
+    .right{display:flex; flex-direction:column; gap:12px}
+    .transcript-wrap{
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+      padding:12px;
+      border-radius:10px;
+      min-height:160px;
+      display:flex;
+      align-items:flex-start;
+    }
+    .transcript{
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      color:#e6fbff;
+      width:100%;
+      white-space:pre-wrap;
+      line-height:1.35;
+      font-size:13px;
+    }
+
+    .log{
+      font-size:13px;
+      color:var(--muted);
+      background:transparent;
+      padding:8px 4px;
+    }
+
+    .manual{margin-top:8px}
+    .manual textarea{
+      width:100%;
+      min-height:80px;
+      border-radius:8px;
+      padding:10px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.03);
+      color:#dff8ff;
+      font-family:inherit;
+      font-size:13px;
+    }
+
+    /* modal */
+    .modal{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(2,4,8,0.6);
+      z-index:40;
+    }
+    .modal.hidden{display:none}
+    .modal-card{
+      background:linear-gradient(180deg, #071022, #04101a);
+      padding:18px;
+      border-radius:12px;
+      width:360px;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    /* toast */
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#071022;
+      color:#dff8ff;
+      padding:10px 14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.03);
+      font-size:13px;
+    }
+    .toast.hidden{display:none}
+
+    /* Responsiveness */
+    @media (max-width:900px){
+      .call-panel{grid-template-columns:1fr; padding:12px}
+      .left{order:2}
+      .right{order:1}
+    }
+  </style>
+</head>
+<body>
+  <!-- Scam Call Detector – Keyword-count version -->
+  <div id="app" class="cyber">
+    <div class="call-panel">
+      <div class="left">
+        <div class="caller-head">
+          <div class="badge">INCOMING CALL</div>
+          <h1 id="caller-number">+91 ● Unknown</h1>
+          <p id="call-meta">Simulated call • <span id="timer">00:00</span></p>
+        </div>
+
+        <div class="controls">
+          <button id="answer" class="btn green">Answer & Analyze</button>
+          <button id="hang" class="btn red">End</button>
+          <button id="simulate-tts" class="btn muted">Simulate Caller Text</button>
+        </div>
+
+        <div class="status">
+          <div class="chip">Call state: <span id="status-text">Idle</span></div>
+          <div class="chip">Threat: <span id="threat-text">Normal</span></div>
+        </div>
+
+        <div class="viz">
+          <label class="label">Threat level</label>
+          <div class="meter"><div id="meter-fill"></div></div>
+          <div class="score" id="score">0%</div>
+        </div>
+
+        <div class="actions">
+          <button id="notify-bank" class="btn warn" disabled>Notify Bank (sim)</button>
+          <button id="notify-cyber" class="btn info" disabled>Notify Cyber Cell (sim)</button>
+        </div>
+
+      </div>
+
+      <div class="right">
+        <div class="transcript-wrap">
+          <div class="transcript" id="transcript">
+            Transcript will appear here (live)
+          </div>
+        </div>
+
+        <div class="log" id="log">Log: waiting for action</div>
+
+        <div class="manual">
+          <label>Manual transcript (edit or paste):</label>
+          <textarea id="manual-input" placeholder="If speech API unsupported, paste or type transcript here"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button id="analyze-manual" class="btn small">Analyze text</button>
+            <button id="clear-manual" class="btn small muted">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation modal for critical actions -->
+    <div id="confirm-modal" class="modal hidden">
+      <div class="modal-card">
+        <h3>Confirm critical action</h3>
+        <p id="confirm-msg">Notify bank to freeze the account (simulated)?</p>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">
+          <button id="confirm-yes" class="btn warn">Yes — notify (sim)</button>
+          <button id="confirm-no" class="btn muted">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script>
+    // Scam Call Detector — Keyword-count based threat logic
+    // Fixed: resets state correctly between calls so each new speech is analyzed fresh.
+
+    (() => {
+      // DOM refs
+      const answerBtn = document.getElementById('answer');
+      const hangBtn = document.getElementById('hang');
+      const simulateBtn = document.getElementById('simulate-tts');
+      const transcriptEl = document.getElementById('transcript');
+      const meterFill = document.getElementById('meter-fill');
+      const scoreEl = document.getElementById('score');
+      const logEl = document.getElementById('log');
+      const notifyBankBtn = document.getElementById('notify-bank');
+      const notifyCyberBtn = document.getElementById('notify-cyber');
+      const manualInput = document.getElementById('manual-input');
+      const analyzeManualBtn = document.getElementById('analyze-manual');
+      const clearManualBtn = document.getElementById('clear-manual');
+
+      const statusText = document.getElementById('status-text');
+      const threatText = document.getElementById('threat-text');
+
+      const confirmModal = document.getElementById('confirm-modal');
+      const confirmMsg = document.getElementById('confirm-msg');
+      const confirmYes = document.getElementById('confirm-yes');
+      const confirmNo = document.getElementById('confirm-no');
+      const toast = document.getElementById('toast');
+
+      let recognition = null;
+      let isListening = false;
+      let callTimer = null;
+      let seconds = 0;
+      let lastTranscript = '';
+
+      // === KEYWORD LIST ===
+      // Your original + extra scammy phrases.
+      const scamKeywords = [
+        // Original ones
+        'congratulations',
+        'upi pin',
+        'lottery',
+        'otp',
+        'upi link',
+        'please give some amount for confirmation',
+
+        // Variants & expansions
+        'one time password',
+        'verification code',
+        'confirm your otp',
+
+        // Prize / lottery style
+        'you have won',
+        'you won',
+        'prize',
+        'jackpot',
+        'lucky draw',
+        'scratch card',
+
+        // Fee / payment for confirmation
+        'processing fee',
+        'registration fee',
+        'refund processing fee',
+        'pay a small amount to confirm',
+
+        // KYC / account scare tactics
+        'kyc update',
+        'update your kyc',
+        'your account will be blocked',
+        'your account will be suspended',
+        'your card will be blocked',
+        'we will freeze your account',
+
+        // Refund / tax / insurance bait
+        'income tax refund',
+        'tax refund',
+        'insurance maturity amount',
+        'policy bonus',
+
+        // Sensitive info
+        'share your pin',
+        'share your password',
+        'share your cvv',
+
+        // UPI / remote access tricks
+        'upi collect request',
+        'screen share',
+        'anydesk',
+        'teamviewer',
+        'remote access'
+      ];
+
+      /**
+       * classifyThreat(text)
+       * High threat ONLY if more than 3 distinct scam keywords appear.
+       * returns { score: 0|100, label: 'Normal'|'High threat', reason: string, hits: [] }
+       */
+      function classifyThreat(text) {
+        if (!text || !text.trim()) {
+          return {
+            score: 0,
+            label: 'Normal',
+            reason: 'No speech text provided.',
+            hits: []
+          };
+        }
+
+        const t = text.toLowerCase();
+        const hits = scamKeywords.filter(k => t.includes(k));
+
+        if (hits.length > 3) {
+          // More than 3 distinct scam phrases detected
+          return {
+            score: 100,
+            label: 'High threat',
+            reason: `Detected multiple suspicious keywords (${hits.length}): ` + hits.join(', '),
+            hits
+          };
+        }
+
+        if (hits.length > 0) {
+          // Some suspicious words, but not enough to flag high threat (demo logic)
+          return {
+            score: 0,
+            label: 'Normal',
+            reason: Found ${hits.length} suspicious keyword(s) (${hits.join(', ')}), but fewer than 4 — treated as normal in this demo.,
+            hits
+          };
+        }
+
+        return {
+          score: 0,
+          label: 'Normal',
+          reason: 'No configured scam keywords detected in the call.',
+          hits: []
+        };
+      }
+
+      // Setup speech recognition if available
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.interimResults = true;
+        recognition.continuous = true;
+        recognition.lang = 'en-IN';
+
+        recognition.onresult = (ev) => {
+          let interim = '';
+          let final = '';
+          for (let i = ev.resultIndex; i < ev.results.length; ++i) {
+            const r = ev.results[i];
+            if (r.isFinal) final += r[0].transcript;
+            else interim += r[0].transcript;
+          }
+          const shown = (final + ' ' + interim).trim();
+          transcriptEl.textContent = shown || '(listening...)';
+          lastTranscript = shown;
+
+          const res = classifyThreat(shown);
+          setThreat(res, false); // live update, don't toggle buttons yet
+        };
+
+        recognition.onerror = (e) => {
+          log('Speech error: ' + (e.error || e.message));
+        };
+      } else {
+        log('SpeechRecognition API not supported in this browser. Use manual transcript input below.');
+      }
+
+      // UI wiring
+      answerBtn.addEventListener('click', () => {
+        startCall();
+      });
+      hangBtn.addEventListener('click', () => {
+        endCall('Call ended by user.');
+      });
+
+      // Simulate button injects a clearly scammy text with many keywords
+      simulateBtn.addEventListener('click', () => {
+        resetForNewAnalysis(); // make sure previous result is wiped
+        const sample =
+          "Hello, congratulations! You have won a big lottery lucky draw. " +
+          "To receive your prize, please give some amount for confirmation as a processing fee, " +
+          "and share your OTP and UPI PIN using the UPI link we send.";
+        transcriptEl.textContent = sample;
+        lastTranscript = sample;
+        const res = classifyThreat(sample);
+        setThreat(res, true); // finalize & toggle buttons
+        log('Simulated scam-like caller text injected.');
+      });
+
+      analyzeManualBtn.addEventListener('click', () => {
+        resetForNewAnalysis(); // for a fresh manual check
+        const txt = manualInput.value.trim();
+        if (!txt) {
+          toastShow('Type or paste text first');
+          return;
+        }
+        transcriptEl.textContent = txt;
+        lastTranscript = txt;
+        const res = classifyThreat(txt);
+        setThreat(res, true); // finalize & toggle buttons
+        log('Manual transcript analyzed.');
+      });
+
+      clearManualBtn.addEventListener('click', () => {
+        manualInput.value = '';
+      });
+
+      notifyBankBtn.addEventListener('click', () => {
+        confirmMsg.textContent =
+          'Notify bank to freeze the account (simulated)? This should be reviewed by a human in real use.';
+        confirmModal.classList.remove('hidden');
+        confirmYes.onclick = () => {
+          confirmModal.classList.add('hidden');
+          fakeNotifyBank(lastTranscript);
+        };
+        confirmNo.onclick = () => confirmModal.classList.add('hidden');
+      });
+
+      notifyCyberBtn.addEventListener('click', () => {
+        fakeNotifyCyber(lastTranscript);
+      });
+
+      // === Helpers ===
+      function log(msg) {
+        const now = new Date().toLocaleTimeString();
+        logEl.textContent = [${now}] ${msg};
+      }
+
+      function toastShow(msg, ms = 3200) {
+        toast.textContent = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), ms);
+      }
+
+      // Reset threat UI and buttons for a completely new analysis (new call or manual)
+      function resetForNewAnalysis() {
+        lastTranscript = '';
+        transcriptEl.textContent = 'Transcript will appear here (live)';
+        setThreat({ score: 0, label: 'Normal', reason: 'Starting new analysis.', hits: [] }, false);
+        notifyBankBtn.disabled = true;
+        notifyCyberBtn.disabled = true;
+      }
+
+      function startCall() {
+        if (isListening) return;
+        isListening = true;
+        statusText.textContent = 'Analyzing';
+        seconds = 0;
+        updateTimer();
+        callTimer = setInterval(() => { seconds++; updateTimer(); }, 1000);
+
+        // Reset everything for this new call
+        resetForNewAnalysis();
+        transcriptEl.textContent = '(listening...)';
+
+        if (recognition) {
+          try {
+            recognition.start();
+            log('Microphone active — listening.');
+          } catch (e) {
+            try { recognition.stop(); recognition.start(); } catch (e2) {}
+          }
+        } else {
+          log('SpeechRecognition not supported — use manual input.');
+        }
+      }
+
+      function endCall(msg) {
+        // Always stop listening and then finalize whatever transcript we currently have
+        if (isListening) {
+          isListening = false;
+          statusText.textContent = 'Idle';
+          clearInterval(callTimer);
+          callTimer = null;
+          if (recognition) {
+            try { recognition.stop(); } catch (e) {}
+          }
+          log(msg || 'Call ended.');
+        }
+        finalizeThreatFromTranscript();
+      }
+
+      function finalizeThreatFromTranscript() {
+        const res = classifyThreat(lastTranscript);
+        setThreat(res, true); // finalize & toggle buttons
+
+        if (res.score === 100) {
+          toastShow('High threat detected — bank & cybercell options enabled (sim).');
+        } else {
+          toastShow('Normal call detected — either no or too few scam keywords.');
+        }
+      }
+
+      function updateTimer() {
+        const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const ss = String(seconds % 60).padStart(2, '0');
+        document.getElementById('timer').textContent = ${mm}:${ss};
+      }
+
+      /**
+       * setThreat(result, finalizeButtons)
+       * - result: output of classifyThreat
+       * - finalizeButtons: if true, enable/disable notify buttons based on score.
+       */
+      function setThreat(result, finalizeButtons) {
+        const { score, label, reason } = result;
+        const clamped = Math.max(0, Math.min(100, Math.round(score)));
+        meterFill.style.width = clamped + '%';
+        scoreEl.textContent = clamped + '%';
+        threatText.textContent = label;
+
+        if (clamped === 100) {
+          meterFill.style.background = 'linear-gradient(90deg, #ff5d6e, #ff8b9c)';
+          meterFill.style.boxShadow = '0 6px 18px rgba(255,77,109,0.25)';
+          log(Threat: HIGH. ${reason});
+        } else {
+          meterFill.style.background = 'linear-gradient(90deg,var(--accent), var(--accent-2))';
+          meterFill.style.boxShadow = 'none';
+          log(Threat: NORMAL. ${reason});
+        }
+
+        // Only toggle action buttons when we are in a "final" state (end of call or manual analysis)
+        if (finalizeButtons) {
+          if (clamped === 100) {
+            notifyBankBtn.disabled = false;
+            notifyCyberBtn.disabled = false;
+          } else {
+            notifyBankBtn.disabled = true;
+            notifyCyberBtn.disabled = true;
+          }
+        }
+      }
+
+      // Fake notify flows
+      function fakeNotifyBank(transcript) {
+        log('Notifying bank (simulated) ...');
+        notifyBankBtn.disabled = true;
+        setTimeout(() => {
+          log('Bank webhook (sim) accepted — human review required.');
+          toastShow('Bank notified (sim). Human review required.');
+        }, 1000);
+      }
+
+      function fakeNotifyCyber(transcript) {
+        log('Notifying cyber cell (simulated) ...');
+        notifyCyberBtn.disabled = true;
+        setTimeout(() => {
+          log('Cyber cell (sim) received details. Case created #SIM' + Math.floor(Math.random()*9000+1000));
+          toastShow('Cyber cell notified (sim). Case created.');
+        }, 1000);
+      }
+
+      // initial state
+      resetForNewAnalysis();
+      statusText.textContent = 'Idle';
+      log('App ready. Click "Answer & Analyze", "Simulate Caller Text", or use manual text.');
+
+      window.addEventListener('beforeunload', () => {
+        if (recognition) {
+          try { recognition.stop(); } catch (e) {}
+        }
+      });
+
+    })();
+  </script>
+</body>
+</html>
